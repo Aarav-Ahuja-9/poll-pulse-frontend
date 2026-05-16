@@ -8,7 +8,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import VoterScreen from './pages/VoterScreen';
 import CampaignDashboard from './pages/CampaignDashboard';
-import Home from './pages/home';
+import Home from './pages/Home';
 
 function App() {
   return (
