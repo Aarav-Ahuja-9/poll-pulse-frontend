@@ -1,8 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
-
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -24,14 +23,32 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
     collectVoterDetails: false,
     isPasswordProtected: false,
     pollPassword: "",
-    accentColor: "#38bdf8",
+    accentColor: "#6366f1", 
   });
+
+  // 🌗 THEME SYNC
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme ? savedTheme === 'dark' : true;
+  });
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleGlobalThemeShift = () => {
+      const savedTheme = localStorage.getItem('theme');
+      setIsDarkMode(savedTheme === 'dark');
+    };
+
+    handleGlobalThemeShift();
+    window.addEventListener('themeChange', handleGlobalThemeShift);
+    return () => window.removeEventListener('themeChange', handleGlobalThemeShift);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const updateField = (field, value) =>
     setFormData((prev) => ({ ...prev, [field]: value }));
-
 
   const addQuestion = () => {
     updateField("questions", [
@@ -133,7 +150,7 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
       if (!token) {
         return alert("Please log in before creating a campaign.");
       }
-      await axios.post("http://localhost:5001/api/polls/create", payload, {
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/polls/create`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
       alert("Campaign Deployed Successfully! 🚀");
@@ -144,6 +161,15 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
     }
   };
 
+  // 💎 TRANSLUCENT VARIABLE SHIFTS
+  const colorText = isDarkMode ? "#f8fafc" : "#0f172a";
+  const colorSubText = isDarkMode ? "#94a3b8" : "#475569";
+  const borderContainer = isDarkMode ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(15, 23, 42, 0.08)";
+  
+  const backgroundModalMain = isDarkMode ? "rgba(10, 11, 18, 0.82)" : "rgba(255, 255, 255, 0.88)";
+  const backgroundInnerCards = isDarkMode ? "rgba(255, 255, 255, 0.02)" : "rgba(15, 23, 42, 0.03)";
+  const backgroundInputFields = isDarkMode ? "rgba(0, 0, 0, 0.25)" : "rgba(255, 255, 255, 0.6)";
+
   return (
     <div
       style={{
@@ -152,8 +178,11 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: "rgba(0,0,0,0.8)",
-        zIndex: 99999,
+        backgroundColor: isDarkMode ? "rgba(2, 4, 10, 0.7)" : "rgba(15, 23, 42, 0.4)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        // 🌟 FIXED LAYER COMPLEX: Forced absolute highest z-index rendering index bounds
+        zIndex: 999999, 
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
@@ -162,46 +191,52 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
     >
       <div
         style={{
-          background: "#0f172a",
+          background: backgroundModalMain,
           width: "100%",
           maxWidth: "850px",
           height: "90vh",
           maxHeight: "900px",
-          borderRadius: "16px",
+          borderRadius: "24px",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+          border: borderContainer,
+          boxShadow: isDarkMode ? "0 25px 60px -12px rgba(0, 0, 0, 0.6)" : "0 25px 60px -12px rgba(15, 23, 42, 0.15)",
+          transition: "all 0.3s ease",
+          position: "relative",
+          zIndex: 1000000 // Sub-container protection layer
         }}
       >
+        {/* Modal Header */}
         <div
           style={{
-            padding: "20px",
-            borderBottom: "1px solid #334155",
+            padding: "24px 32px",
+            borderBottom: isDarkMode ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(15, 23, 42, 0.06)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            backgroundColor: "#1e293b",
+            backgroundColor: "transparent",
             flexShrink: 0,
           }}
         >
           <div>
             <span
               style={{
-                fontSize: "12px",
-                background: formData.accentColor,
-                color: "#000",
-                padding: "4px 8px",
-                borderRadius: "4px",
-                fontWeight: "bold",
+                fontSize: "11px",
+                fontFamily: "monospace",
+                background: "rgba(99, 102, 241, 0.12)",
+                color: "#6366f1",
+                padding: "4px 10px",
+                borderRadius: "100px",
+                fontWeight: "700",
               }}
             >
-              ✨ CREATE CAMPAIGN
+              ✨ NEW POLL
             </span>
             <h2
-              style={{ margin: "10px 0 0 0", color: "#fff", fontSize: "24px" }}
+              style={{ margin: "10px 0 0 0", color: colorText, fontSize: "24px", fontWeight: "800", letterSpacing: "-0.5px" }}
             >
-              Construct Pulse
+              Create New Poll
             </h2>
           </div>
           <button
@@ -210,42 +245,45 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
             style={{
               background: "transparent",
               border: "none",
-              color: "#94a3b8",
-              fontSize: "28px",
+              color: colorSubText,
+              fontSize: "24px",
               cursor: "pointer",
             }}
           >
-            &times;
+            ✕
           </button>
         </div>
 
+        {/* Modal Scroll Body */}
         <div
           style={{
             flex: 1,
             overflowY: "auto",
-            padding: "20px",
-            color: "#cbd5e1",
+            padding: "32px",
+            color: colorText,
           }}
         >
+          {/* Title Box */}
           <div
             style={{
-              marginBottom: "25px",
-              background: "#1e293b",
-              padding: "20px",
-              borderRadius: "12px",
-              border: "1px solid #334155",
+              marginBottom: "24px",
+              background: backgroundInnerCards,
+              padding: "24px",
+              borderRadius: "16px",
+              border: borderContainer,
             }}
           >
-            <div style={{ marginBottom: "15px" }}>
+            <div style={{ marginBottom: "16px" }}>
               <label
                 style={{
                   display: "block",
                   marginBottom: "8px",
-                  color: "#fff",
-                  fontWeight: "bold",
+                  color: colorText,
+                  fontWeight: "700",
+                  fontSize: "14px"
                 }}
               >
-                Campaign Title
+                Poll Title
               </label>
               <input
                 type="text"
@@ -254,12 +292,15 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                 onChange={(e) => updateField("title", e.target.value)}
                 style={{
                   width: "100%",
-                  padding: "12px",
-                  borderRadius: "8px",
-                  background: "#0f172a",
-                  border: "1px solid #334155",
-                  color: "#fff",
+                  padding: "14px 16px",
+                  borderRadius: "10px",
+                  background: backgroundInputFields,
+                  border: borderContainer,
+                  color: colorText,
                   boxSizing: "border-box",
+                  outline: "none",
+                  fontSize: "15px",
+                  transition: "all 0.2s"
                 }}
               />
             </div>
@@ -268,40 +309,45 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                 style={{
                   display: "block",
                   marginBottom: "8px",
-                  color: "#94a3b8",
+                  color: colorSubText,
                   fontSize: "13px",
+                  fontWeight: "500"
                 }}
               >
                 Description / Instructions (Optional)
               </label>
               <textarea
-                placeholder="Briefly explain what this campaign is about..."
+                placeholder="Briefly explain what this poll is about..."
                 value={formData.description}
                 onChange={(e) => updateField("description", e.target.value)}
                 style={{
                   width: "100%",
-                  padding: "12px",
-                  borderRadius: "8px",
-                  background: "#0f172a",
-                  border: "1px solid #334155",
-                  color: "#fff",
+                  padding: "14px 16px",
+                  borderRadius: "10px",
+                  background: backgroundInputFields,
+                  border: borderContainer,
+                  color: colorText,
                   boxSizing: "border-box",
                   minHeight: "80px",
                   resize: "vertical",
+                  outline: "none",
+                  fontSize: "14px",
+                  transition: "all 0.2s"
                 }}
               />
             </div>
           </div>
 
+          {/* Questions Render Loop */}
           {formData.questions.map((q, qIndex) => (
             <div
               key={qIndex}
               style={{
-                border: "1px solid #334155",
-                padding: "20px",
-                borderRadius: "12px",
+                border: borderContainer,
+                padding: "24px",
+                borderRadius: "16px",
                 marginBottom: "20px",
-                backgroundColor: "#1e293b",
+                backgroundColor: backgroundInnerCards,
               }}
             >
               <div
@@ -309,9 +355,10 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  marginBottom: "15px",
-                  paddingBottom: "10px",
-                  borderBottom: "1px solid #334155",
+                  removeAttribute: "true",
+                  marginBottom: "20px",
+                  paddingBottom: "12px",
+                  borderBottom: isDarkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(15,23,42,0.06)",
                   flexWrap: "wrap",
                   gap: "10px",
                 }}
@@ -319,12 +366,12 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                 <div
                   style={{
                     display: "flex",
-                    gap: "15px",
+                    gap: "16px",
                     alignItems: "center",
                     flexWrap: "wrap",
                   }}
                 >
-                  <h3 style={{ margin: 0, color: "#fff" }}>
+                  <h3 style={{ margin: 0, color: colorText, fontSize: "16px", fontWeight: "700" }}>
                     Question {qIndex + 1}
                   </h3>
                   <select
@@ -337,13 +384,15 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                       )
                     }
                     style={{
-                      padding: "6px 12px",
-                      borderRadius: "6px",
-                      background: "#0f172a",
-                      color: formData.accentColor,
-                      border: `1px solid ${formData.accentColor}`,
-                      fontWeight: "bold",
+                      padding: "6px 14px",
+                      borderRadius: "100px",
+                      background: backgroundInputFields,
+                      color: "#6366f1",
+                      border: "1px solid rgba(99, 102, 241, 0.2)",
+                      fontWeight: "700",
+                      fontSize: "13px",
                       cursor: "pointer",
+                      outline: "none"
                     }}
                   >
                     <option value="CHOICE">Multiple Choice</option>
@@ -353,15 +402,15 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                   <label
                     style={{
                       fontSize: "11px",
-                      fontWeight: "bold",
+                      fontWeight: "700",
                       display: "flex",
                       alignItems: "center",
                       gap: "6px",
                       cursor: "pointer",
                       background: q.isMandatory
-                        ? "rgba(34, 197, 94, 0.1)"
+                        ? "rgba(34, 197, 94, 0.12)"
                         : "rgba(255, 255, 255, 0.05)",
-                      color: q.isMandatory ? "#22c55e" : "#64748b",
+                      color: q.isMandatory ? "#22c55e" : colorSubText,
                       padding: "4px 10px",
                       borderRadius: "6px",
                       userSelect: "none",
@@ -377,7 +426,7 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                           e.target.checked,
                         )
                       }
-                      style={{ cursor: "pointer", margin: 0 }}
+                      style={{ cursor: "pointer", margin: 0, accentColor: "#22c55e" }}
                     />
                     {q.isMandatory ? "✓ REQUIRED" : "OPTIONAL"}
                   </label>
@@ -391,10 +440,11 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                       background: "transparent",
                       border: "none",
                       cursor: "pointer",
-                      fontWeight: "bold",
+                      fontWeight: "700",
+                      fontSize: "13px"
                     }}
                   >
-                    🗑️ Remove
+                    Remove Question
                   </button>
                 )}
               </div>
@@ -403,8 +453,8 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                 style={{
                   display: "flex",
                   flexWrap: "wrap",
-                  gap: "15px",
-                  marginBottom: "15px",
+                  gap: "16px",
+                  marginBottom: "16px",
                 }}
               >
                 <div style={{ flex: "1 1 300px" }}>
@@ -412,7 +462,9 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                     style={{
                       display: "block",
                       fontSize: "12px",
-                      marginBottom: "5px",
+                      fontWeight: "600",
+                      marginBottom: "6px",
+                      color: colorSubText
                     }}
                   >
                     Question Text
@@ -426,12 +478,13 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                     }
                     style={{
                       width: "100%",
-                      padding: "10px",
+                      padding: "12px 14px",
                       borderRadius: "8px",
-                      background: "#0f172a",
-                      border: "1px solid #334155",
-                      color: "#fff",
+                      background: backgroundInputFields,
+                      border: borderContainer,
+                      color: colorText,
                       boxSizing: "border-box",
+                      outline: "none"
                     }}
                   />
                 </div>
@@ -448,10 +501,12 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                     style={{
                       display: "block",
                       fontSize: "12px",
-                      marginBottom: "5px",
+                      fontWeight: "600",
+                      marginBottom: "6px",
+                      color: colorSubText
                     }}
                   >
-                    Question Image
+                    Question Image (Optional)
                   </label>
                   <label
                     style={{
@@ -459,15 +514,15 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                       alignItems: "center",
                       justifyContent: "center",
                       gap: "8px",
-                      padding: "0 10px",
-                      background: q.imageUrl ? "#0f172a" : "transparent",
-                      border: `1px dashed ${formData.accentColor}`,
-                      color: formData.accentColor,
+                      padding: "0 14px",
+                      background: backgroundInputFields,
+                      border: "1px dashed rgba(99,102,241,0.3)",
+                      color: "#6366f1",
                       borderRadius: "8px",
                       cursor: "pointer",
-                      fontWeight: "bold",
-                      fontSize: "12px",
-                      height: "40px",
+                      fontWeight: "700",
+                      fontSize: "13px",
+                      height: "42px",
                       boxSizing: "border-box",
                       overflow: "hidden",
                       transition: "all 0.2s",
@@ -491,10 +546,10 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                             borderRadius: "4px",
                           }}
                         />
-                        <span style={{ color: "#cbd5e1" }}>Change Image</span>
+                        <span style={{ color: colorText }}>Change Image</span>
                       </div>
                     ) : (
-                      <>🖼️ Upload File</>
+                      <>🖼 Upload Image</>
                     )}
                     <input
                       type="file"
@@ -521,10 +576,12 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                     style={{
                       display: "block",
                       fontSize: "12px",
-                      marginBottom: "5px",
+                      fontWeight: "600",
+                      marginBottom: "6px",
+                      color: colorSubText
                     }}
                   >
-                    Timer (Mins)
+                    Time Limit (Mins)
                   </label>
                   <input
                     type="number"
@@ -539,35 +596,40 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                     }
                     style={{
                       width: "100%",
-                      padding: "10px",
+                      padding: "12px 14px",
                       borderRadius: "8px",
-                      background: "#0f172a",
-                      border: `1px solid ${formData.accentColor}`,
-                      color: "#fff",
+                      background: backgroundInputFields,
+                      border: "1px solid rgba(99, 102, 241, 0.2)",
+                      color: colorText,
                       boxSizing: "border-box",
+                      outline: "none"
                     }}
                   />
                 </div>
               </div>
 
+              {/* Multiple Choices Template */}
               {q.questionType === "CHOICE" && (
                 <div
                   style={{
-                    marginTop: "15px",
-                    background: "#0f172a",
-                    padding: "15px",
-                    borderRadius: "8px",
+                    marginTop: "16px",
+                    background: isDarkMode ? "rgba(0, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.4)",
+                    padding: "16px",
+                    borderRadius: "10px",
+                    border: borderContainer
                   }}
                 >
                   <label
                     style={{
                       display: "block",
-                      fontSize: "12px",
-                      marginBottom: "10px",
-                      color: "#94a3b8",
+                      fontSize: "11px",
+                      fontFamily: "monospace",
+                      textTransform: "uppercase",
+                      marginBottom: "12px",
+                      color: colorSubText,
                     }}
                   >
-                    Options (Tick checkbox to mark Correct Answer)
+                    Options (Tick the box next to the correct answer)
                   </label>
                   {q.options.map((opt, optIndex) => (
                     <div
@@ -582,8 +644,8 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                         type="checkbox"
                         checked={q.correctOptions.includes(optIndex)}
                         onChange={() => toggleCorrectOption(qIndex, optIndex)}
-                        style={{ width: "20px", cursor: "pointer" }}
-                        title="Mark as Correct"
+                        style={{ width: "18px", cursor: "pointer", accentColor: "#6366f1" }}
+                        title="Mark as Correct Answer"
                       />
                       <input
                         type="text"
@@ -594,11 +656,13 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                         }
                         style={{
                           flex: 1,
-                          padding: "10px",
+                          padding: "10px 14px",
                           borderRadius: "8px",
-                          background: "#1e293b",
-                          border: "1px solid #334155",
-                          color: "#fff",
+                          background: backgroundInputFields,
+                          border: borderContainer,
+                          color: colorText,
+                          fontSize: "14px",
+                          outline: "none"
                         }}
                       />
                       {q.options.length > 2 && (
@@ -606,15 +670,16 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                           type="button"
                           onClick={() => handleRemoveOption(qIndex, optIndex)}
                           style={{
-                            padding: "0 15px",
-                            background: "#334155",
-                            color: "#fff",
+                            padding: "0 14px",
+                            background: "transparent",
+                            color: "#ef4444",
                             border: "none",
-                            borderRadius: "8px",
                             cursor: "pointer",
+                            fontSize: "14px",
+                            fontWeight: "700"
                           }}
                         >
-                          X
+                          ✕
                         </button>
                       )}
                     </div>
@@ -623,15 +688,15 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                     type="button"
                     onClick={() => handleAddOption(qIndex)}
                     style={{
-                      marginTop: "5px",
-                      padding: "8px 15px",
+                      marginTop: "4px",
+                      padding: "6px 14px",
                       background: "transparent",
-                      color: formData.accentColor,
-                      border: `1px dashed ${formData.accentColor}`,
-                      borderRadius: "8px",
+                      color: "#6366f1",
+                      border: "1px dashed rgba(99,102,241,0.4)",
+                      borderRadius: "6px",
                       cursor: "pointer",
                       fontSize: "12px",
-                      fontWeight: "bold",
+                      fontWeight: "700",
                     }}
                   >
                     + Add Option
@@ -639,47 +704,17 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                 </div>
               )}
 
+              {/* Short Text Fallback */}
               {q.questionType === "TEXT" && (
-                <div
-                  style={{
-                    padding: "20px",
-                    background: "#0f172a",
-                    borderRadius: "8px",
-                    border: "1px dashed #475569",
-                    color: "#94a3b8",
-                    textAlign: "center",
-                  }}
-                >
-                  ✍️ Voters will get a text box to type their descriptive answer
-                  here.
+                <div style={{ padding: "20px", background: backgroundInputFields, borderRadius: "8px", border: "1px dashed rgba(255,255,255,0.06)", color: colorSubText, textAlign: "center", fontSize: "13px" }}>
+                  ✍️ Voters will get a text box to type their descriptive answer here.
                 </div>
               )}
 
+              {/* Star Ratings Fallback */}
               {q.questionType === "RATING" && (
-                <div
-                  style={{
-                    padding: "20px",
-                    background: "#0f172a",
-                    borderRadius: "8px",
-                    border: "1px dashed #475569",
-                    color: "#fbbf24",
-                    textAlign: "center",
-                    fontSize: "24px",
-                    letterSpacing: "5px",
-                  }}
-                >
-                  ★ ★ ★ ★ ★{" "}
-                  <span
-                    style={{
-                      fontSize: "14px",
-                      color: "#94a3b8",
-                      letterSpacing: "normal",
-                      display: "block",
-                      marginTop: "5px",
-                    }}
-                  >
-                    (Voters will select a rating out of 5)
-                  </span>
+                <div style={{ padding: "20px", background: backgroundInputFields, borderRadius: "8px", border: "1px dashed rgba(255,255,255,0.06)", color: "#fbbf24", textAlign: "center", fontSize: "22px", letterSpacing: "5px" }}>
+                  ★ ★ ★ ★ ★ <span style={{ fontSize: "13px", color: colorSubText, letterSpacing: "normal", display: "block", marginTop: "4px" }}>(Voters will select a rating out of 5 stars)</span>
                 </div>
               )}
             </div>
@@ -690,56 +725,40 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
             onClick={addQuestion}
             style={{
               width: "100%",
-              padding: "15px",
-              border: "2px dashed #475569",
+              padding: "14px",
+              border: "1px dashed rgba(99,102,241,0.4)",
               background: "transparent",
-              color: "#fff",
+              color: "#6366f1",
               borderRadius: "12px",
               cursor: "pointer",
-              marginBottom: "30px",
-              fontWeight: "bold",
+              marginBottom: "24px",
+              fontWeight: "700",
+              fontSize: "14px",
               transition: "all 0.2s",
             }}
           >
             + Add Another Question
           </button>
 
+          {/* Access Rules Controls Grid */}
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: "20px",
-              marginBottom: "20px",
-              background: "#1e293b",
-              padding: "20px",
-              borderRadius: "12px",
-              border: "1px solid #334155",
+              gap: "16px",
+              marginBottom: "10px",
+              background: backgroundInnerCards,
+              padding: "24px",
+              borderRadius: "16px",
+              border: borderContainer,
             }}
           >
             <div>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "12px",
-                  marginBottom: "5px",
-                  color: "#94a3b8",
-                }}
-              >
-                Session Expiry
-              </label>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "6px", color: colorSubText }}>Session Expiry</label>
               <select
                 value={formData.pollSessionExpiry}
-                onChange={(e) =>
-                  updateField("pollSessionExpiry", e.target.value)
-                }
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  borderRadius: "8px",
-                  background: "#0f172a",
-                  color: "#fff",
-                  border: "1px solid #334155",
-                }}
+                onChange={(e) => updateField("pollSessionExpiry", e.target.value)}
+                style={{ width: "100%", padding: "12px", borderRadius: "8px", background: backgroundInputFields, color: colorText, border: borderContainer, outline: "none", cursor: "pointer" }}
               >
                 <option value="1">1 Hour</option>
                 <option value="24">24 Hours</option>
@@ -749,47 +768,19 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
             </div>
 
             <div>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "12px",
-                  marginBottom: "5px",
-                  color: "#94a3b8",
-                }}
-              >
-                Voter Identity
-              </label>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "6px", color: colorSubText }}>Voter Privacy</label>
               <select
                 value={formData.collectVoterDetails ? "named" : "anonymous"}
-                onChange={(e) =>
-                  updateField("collectVoterDetails", e.target.value === "named")
-                }
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  borderRadius: "8px",
-                  background: "#0f172a",
-                  color: "#fff",
-                  border: "1px solid #334155",
-                  cursor: "pointer",
-                }}
+                onChange={(e) => updateField("collectVoterDetails", e.target.value === "named")}
+                style={{ width: "100%", padding: "12px", borderRadius: "8px", background: backgroundInputFields, color: colorText, border: borderContainer, outline: "none", cursor: "pointer" }}
               >
-                <option value="anonymous">🕵️ Anonymous Voting</option>
+                <option value="anonymous">🕵 Anonymous Voting</option>
                 <option value="named">📝 Require Voter Name</option>
               </select>
             </div>
 
             <div>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "12px",
-                  marginBottom: "5px",
-                  color: "#94a3b8",
-                }}
-              >
-                Poll Access
-              </label>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", marginBottom: "6px", color: colorSubText }}>Poll Access Type</label>
               <select
                 value={formData.isPasswordProtected ? "password" : "open"}
                 onChange={(e) => {
@@ -797,15 +788,7 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
                   updateField("isPasswordProtected", isProtected);
                   if (!isProtected) updateField("pollPassword", "");
                 }}
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  borderRadius: "8px",
-                  background: "#0f172a",
-                  color: "#fff",
-                  border: `1px solid ${formData.accentColor}`,
-                  cursor: "pointer",
-                }}
+                style={{ width: "100%", padding: "12px", borderRadius: "8px", background: backgroundInputFields, color: colorText, border: "1px solid rgba(99, 102, 241, 0.2)", outline: "none", cursor: "pointer" }}
               >
                 <option value="open">🌐 Open Link (Public)</option>
                 <option value="password">🔒 Password Protected</option>
@@ -814,44 +797,28 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
 
             {formData.isPasswordProtected && (
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "12px",
-                    marginBottom: "5px",
-                    color: formData.accentColor,
-                  }}
-                >
-                  Set Access Password
-                </label>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "700", marginBottom: "6px", color: "#6366f1" }}>Set Poll Password</label>
                 <input
                   type="text"
-                  placeholder="Enter secure password..."
+                  placeholder="Enter access password..."
                   value={formData.pollPassword}
                   onChange={(e) => updateField("pollPassword", e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    background: "#0f172a",
-                    border: `1px dashed ${formData.accentColor}`,
-                    color: "#fff",
-                    boxSizing: "border-box",
-                  }}
+                  style={{ width: "100%", padding: "12px", borderRadius: "8px", background: backgroundInputFields, border: "1px dashed #6366f1", color: colorText, boxSizing: "border-box", outline: "none" }}
                 />
               </div>
             )}
           </div>
         </div>
 
+        {/* Modal Actions Footer Bar */}
         <div
           style={{
-            padding: "20px",
-            borderTop: "1px solid #334155",
-            backgroundColor: "#1e293b",
+            padding: "20px 32px",
+            borderTop: isDarkMode ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(15, 23, 42, 0.06)",
+            backgroundColor: "transparent",
             display: "flex",
             justifyContent: "flex-end",
-            gap: "15px",
+            gap: "12px",
             flexShrink: 0,
           }}
         >
@@ -861,11 +828,12 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
             style={{
               padding: "12px 24px",
               background: "transparent",
-              color: "#cbd5e1",
-              border: "1px solid #475569",
-              borderRadius: "8px",
+              color: colorSubText,
+              border: isDarkMode ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid rgba(15, 23, 42, 0.15)",
+              borderRadius: "100px",
               cursor: "pointer",
-              fontWeight: "bold",
+              fontWeight: "700",
+              fontSize: "14px"
             }}
           >
             Discard
@@ -874,15 +842,15 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
             type="button"
             onClick={submitPoll}
             style={{
-              padding: "12px 30px",
-              background: formData.accentColor,
-              color: "#000",
+              padding: "12px 28px",
+              background: "linear-gradient(135deg, #6366f1, #a855f7)",
+              color: "#fff",
               border: "none",
-              borderRadius: "8px",
+              borderRadius: "100px",
               cursor: "pointer",
-              fontWeight: "bold",
-              fontSize: "16px",
-              boxShadow: `0 4px 14px 0 ${formData.accentColor}66`,
+              fontWeight: "700",
+              fontSize: "14px",
+              boxShadow: "0 4px 14px rgba(99, 102, 241, 0.2)",
             }}
           >
             Launch Poll 🚀

@@ -3,7 +3,7 @@ import axios from 'axios';
 import { io } from 'socket.io-client';
 import { useParams, useNavigate } from 'react-router-dom';
 
-const socket = io('http://localhost:5001');
+const socket = io(import.meta.env.VITE_BACKEND_URL);
 
 const CampaignDashboard = ({ onClose }) => {
     const { pollId } = useParams();
@@ -26,7 +26,7 @@ const CampaignDashboard = ({ onClose }) => {
 
         const fetchInitialData = async () => {
             try {
-                const pollRes = await axios.get(`http://localhost:5001/api/polls/${pollId}`, config);
+                const pollRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/polls/${pollId}`, config);
                 setPollDetails(pollRes.data.poll);
                 await fetchLiveResults(config);
             } catch (err) {
@@ -60,7 +60,7 @@ const CampaignDashboard = ({ onClose }) => {
             const config = configOverride || getAuthConfig();
             if (!config) return;
 
-            const res = await axios.get(`http://localhost:5001/api/polls/analytics/${pollId}`, config);
+            const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/polls/analytics/${pollId}`, config);
             setAnalytics(res.data);
             setTotalVotes(res.data.reduce((acc, curr) => acc + curr.count, 0));
         } catch (err) {
@@ -75,7 +75,7 @@ const CampaignDashboard = ({ onClose }) => {
 
         try {
             const config = getAuthConfig();
-            const res = await axios.post(`http://localhost:5001/api/polls/${pollId}/clear-all`, {}, config);
+            const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/polls/${pollId}/clear-all`, {}, config);
             alert(res.data.message);
             setLiveFeed([]);
             await fetchLiveResults(config);
@@ -92,7 +92,7 @@ const CampaignDashboard = ({ onClose }) => {
 
         try {
             const config = getAuthConfig();
-            const res = await axios.post(`http://localhost:5001/api/polls/${pollId}/clear-question`, { questionIndex: qIndex }, config);
+            const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/polls/${pollId}/clear-question`, { questionIndex: qIndex }, config);
             alert(res.data.message);
             await fetchLiveResults(config);
         } catch (err) {

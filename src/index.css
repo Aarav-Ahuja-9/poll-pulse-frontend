@@ -112,6 +112,26 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+.dashboard-wrapper.light {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.dashboard-wrapper.light .create-card {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.dashboard-wrapper.light .empty-state {
+  background: rgba(15, 23, 42, 0.02);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.dashboard-wrapper.light .action-panel-btn:hover {
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.3) !important;
+}
+
 .dash-content {
   padding: 140px 24px 80px 24px;
   max-width: 1050px;

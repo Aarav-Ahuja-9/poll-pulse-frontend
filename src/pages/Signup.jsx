@@ -44,7 +44,7 @@ const Signup = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:5001/api/users/signup", {
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/users/signup`, {
         name,
         email,
         password,
