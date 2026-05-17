@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar"; 
+import Navbar from "../components/Navbar";
+import { apiUrl } from "../config/api"; 
 
 const Login = () => {
   const navigate = useNavigate();
@@ -43,10 +44,15 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/users/login`, {
-        email,
+      const res = await axios.post(apiUrl("/api/users/login"), {
+        email: email.trim().toLowerCase(),
         password,
       });
+
+      if (!res.data?.token) {
+        alert("Login succeeded but no session token was returned. Try again.");
+        return;
+      }
 
       localStorage.setItem(
         "userInfo",
@@ -58,7 +64,12 @@ const Login = () => {
 
       navigate("/dashboard");
     } catch (err) {
-      alert(err.response?.data?.message || "Invalid Credentials");
+      const message =
+        err.response?.data?.message ||
+        (err.message?.includes("VITE_BACKEND_URL")
+          ? err.message
+          : "Could not reach the server. Check your connection and .env file.");
+      alert(message);
     } finally {
       setLoading(false);
     }

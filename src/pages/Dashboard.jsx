@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import CreatePollModal from "../components/CreatePollModal";
-import Navbar from "../components/Navbar"; 
+import Navbar from "../components/Navbar";
+import { apiUrl } from "../config/api"; 
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -68,10 +69,7 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${userInfo.token}` },
       };
 
-      const res = await axios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/polls/user/my-polls`,
-        config,
-      );
+      const res = await axios.get(apiUrl("/api/polls/user/my-polls"), config);
       setPolls(res.data.polls || []);
       setSelectedPolls([]);
     } catch (err) {
@@ -94,7 +92,7 @@ const Dashboard = () => {
       const userInfo = JSON.parse(localStorage.getItem("userInfo"));
       const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
 
-      await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/polls/${id}`, config);
+      await axios.delete(apiUrl(`/api/polls/${id}`), config);
       setPolls(polls.filter((poll) => poll._id !== id));
       setSelectedPolls(selectedPolls.filter((pId) => pId !== id));
       if (previewPollId === id) setPreviewPollId(null);
@@ -114,7 +112,7 @@ const Dashboard = () => {
       const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
 
       await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/polls/user/bulk-delete`,
+        apiUrl("/api/polls/user/bulk-delete"),
         { pollIds: selectedPolls },
         config,
       );

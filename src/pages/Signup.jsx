@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar"; 
+import Navbar from "../components/Navbar";
+import { apiUrl } from "../config/api"; 
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -44,11 +45,17 @@ const Signup = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/users/signup`, {
-        name,
-        email,
+      const res = await axios.post(apiUrl("/api/users/signup"), {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
         password,
       });
+
+      if (!res.data?.token) {
+        alert("Account created but sign-in failed. Please log in manually.");
+        navigate("/login");
+        return;
+      }
 
       localStorage.setItem(
         "userInfo",
@@ -60,7 +67,12 @@ const Signup = () => {
 
       navigate("/dashboard");
     } catch (err) {
-      alert(err.response?.data?.message || "Registration Failed. Try again.");
+      const message =
+        err.response?.data?.message ||
+        (err.message?.includes("VITE_BACKEND_URL")
+          ? err.message
+          : "Could not reach the server. Check your connection and .env file.");
+      alert(message);
     } finally {
       setLoading(false);
     }

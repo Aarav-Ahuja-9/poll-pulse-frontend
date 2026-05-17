@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { apiUrl } from "../config/api";
 
 const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
   const [formData, setFormData] = useState({
@@ -150,7 +151,7 @@ const CreatePollModal = ({ isOpen, onClose, refreshPolls }) => {
       if (!token) {
         return alert("Please log in before creating a campaign.");
       }
-      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/polls/create`, payload, {
+      await axios.post(apiUrl("/api/polls/create"), payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
       alert("Campaign Deployed Successfully! 🚀");
