@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar"; 
@@ -11,11 +11,39 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // 🌗 CORE THEME SYNC: Fetches layout constraints directly from common localStorage runtime
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme ? savedTheme === 'dark' : true;
+  });
+
+  useEffect(() => {
+    // Structural layout transitions engine
+    document.body.style.transition = 'background-color 0.3s ease, color 0.3s ease';
+    if (isDarkMode) {
+      document.body.style.backgroundColor = '#02040a';
+      document.body.style.color = '#f8fafc';
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.body.style.backgroundColor = '#f8fafc';
+      document.body.style.color = '#0f172a';
+      localStorage.setItem('theme', 'light');
+    }
+
+    // Active cross-tab/module update trigger hook
+    const handleGlobalThemeShift = () => {
+      const savedTheme = localStorage.getItem('theme');
+      setIsDarkMode(savedTheme === 'dark');
+    };
+
+    window.addEventListener('themeChange', handleGlobalThemeShift);
+    return () => window.removeEventListener('themeChange', handleGlobalThemeShift);
+  }, [isDarkMode]);
+
   const handleSignup = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      // 🚀 Backend endpoint changed to registration flow
       const res = await axios.post("http://localhost:5001/api/users/signup", {
         name,
         email,
@@ -39,26 +67,26 @@ const Signup = () => {
   };
 
   return (
-    <div style={{ position: "relative", minHeight: "100vh", overflowX: "hidden" }}>
+    <div style={{ position: "relative", minHeight: "100vh", overflowX: "hidden", color: isDarkMode ? "#f8fafc" : "#0f172a", transition: "color 0.3s ease" }}>
       
-      {/* 🔮 Subtle Corner Gradients (Consistent with Login) */}
+      {/* 🔮 Corner Gradients (Altered values to protect contrast benchmarks) */}
       <div style={{ 
           position: "absolute", top: "-10%", left: "-10%", width: "400px", height: "400px", 
-          background: "radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%)", 
+          background: isDarkMode ? "radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%)" : "radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 70%)", 
           pointerEvents: "none", zIndex: -1 
       }} />
       <div style={{ 
           position: "absolute", bottom: "10%", right: "-10%", width: "500px", height: "500px", 
-          background: "radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, transparent 70%)", 
+          background: isDarkMode ? "radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, transparent 70%)" : "radial-gradient(circle, rgba(168, 85, 247, 0.04) 0%, transparent 70%)", 
           pointerEvents: "none", zIndex: -1 
       }} />
 
-      {/* 🛠️ Raw Geometric Background Accents */}
-      <div style={{ position: "absolute", top: "25%", left: "10%", fontSize: "14px", fontFamily: "monospace", opacity: 0.15, pointerEvents: "none", userSelect: "none" }}>
+      {/* 🛠️ Raw Geometric Background Accents (Pointer blocks verified) */}
+      <div style={{ position: "absolute", top: "25%", left: "10%", fontSize: "14px", fontFamily: "monospace", opacity: isDarkMode ? 0.15 : 0.35, pointerEvents: "none", userSelect: "none" }}>
         {`// initialize_user_session_v2`} <br />
         {`const payload = { name, email, password };`}
       </div>
-      <div style={{ position: "absolute", bottom: "25%", right: "10%", fontSize: "14px", fontFamily: "monospace", opacity: 0.15, pointerEvents: "none", userSelect: "none", textAlign: "right" }}>
+      <div style={{ position: "absolute", bottom: "25%", right: "10%", fontSize: "14px", fontFamily: "monospace", opacity: isDarkMode ? 0.15 : 0.35, pointerEvents: "none", userSelect: "none", textAlign: "right" }}>
         {`import { useAuthContext } from './context';`} <br />
         {`api_status: "listening_for_payload"`}
       </div>
@@ -67,13 +95,13 @@ const Signup = () => {
 
       <main style={{ 
           display: "flex", alignItems: "center", justifyContent: "center", 
-          padding: "160px 5% 80px 5%", minHeight: "calc(100vh - 240px)" 
+          padding: "160px 5% 80px 5%", minHeight: "calc(100vh - 240px)", position: "relative", zIndex: 1
       }}>
         
-        {/* 📦 Minimal Locked Card Layout */}
+        {/* 📦 Matte Glass Layout Card Container */}
         <div className="auth-card" style={{ 
-            background: "rgba(10, 15, 30, 0.5)", 
-            border: "1px solid rgba(255, 255, 255, 0.1)", 
+            background: isDarkMode ? "rgba(10, 15, 30, 0.5)" : "rgba(255, 255, 255, 0.75)", 
+            border: isDarkMode ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(15, 23, 42, 0.08)", 
             borderRadius: "24px", 
             padding: "40px",
             maxWidth: "400px",
@@ -81,7 +109,9 @@ const Signup = () => {
             backdropFilter: "blur(16px)",
             WebkitBackdropFilter: "blur(16px)",
             textAlign: "center",
-            position: "relative"
+            position: "relative",
+            transition: "all 0.3s ease",
+            boxShadow: isDarkMode ? "0 20px 50px rgba(0, 0, 0, 0.3)" : "0 20px 50px rgba(0, 0, 0, 0.05)"
         }}>
           
           {/* Top Raw Tag */}
@@ -90,10 +120,10 @@ const Signup = () => {
              Registration Terminal
           </div>
 
-          <h2 style={{ fontSize: "26px", fontWeight: "800", margin: "0 0 8px 0", letterSpacing: "-0.5px" }}>
+          <h2 style={{ fontSize: "26px", fontWeight: "800", margin: "0 0 8px 0", letterSpacing: "-0.5px", color: isDarkMode ? "#fff" : "#0f172a" }}>
             Create Account
           </h2>
-          <p style={{ fontSize: "14px", opacity: 0.6, margin: "0 0 32px 0", fontWeight: "500" }}>
+          <p style={{ fontSize: "14px", opacity: 0.6, margin: "0 0 32px 0", fontWeight: "500", color: isDarkMode ? "inherit" : "#475569" }}>
             Join SnapPolls to create live interactive campaigns.
           </p>
 
@@ -101,7 +131,7 @@ const Signup = () => {
             
             {/* Full Name Field */}
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <label style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", opacity: 0.8 }}>Full Name</label>
+              <label style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", opacity: isDarkMode ? 0.8 : 0.65, color: isDarkMode ? "inherit" : "#0f172a" }}>Full Name</label>
               <input
                 type="text"
                 placeholder="John Doe"
@@ -111,16 +141,17 @@ const Signup = () => {
                 required
                 style={{
                     width: "100%", padding: "14px 16px", borderRadius: "10px",
-                    background: "rgba(255, 255, 255, 0.03)", color: "inherit",
-                    border: "1px solid rgba(255, 255, 255, 0.1)", fontSize: "15px",
-                    outline: "none", transition: "all 0.2s", boxSizing: "border-box"
+                    background: isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(15, 23, 42, 0.03)", 
+                    color: isDarkMode ? "#fff" : "#0f172a",
+                    border: isDarkMode ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(15, 23, 42, 0.1)", 
+                    fontSize: "15px", outline: "none", transition: "all 0.2s", boxSizing: "border-box"
                 }}
               />
             </div>
 
             {/* Email Field */}
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <label style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", opacity: 0.8 }}>Email Address</label>
+              <label style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", opacity: isDarkMode ? 0.8 : 0.65, color: isDarkMode ? "inherit" : "#0f172a" }}>Email Address</label>
               <input
                 type="email"
                 placeholder="name@domain.com"
@@ -130,9 +161,10 @@ const Signup = () => {
                 required
                 style={{
                     width: "100%", padding: "14px 16px", borderRadius: "10px",
-                    background: "rgba(255, 255, 255, 0.03)", color: "inherit",
-                    border: "1px solid rgba(255, 255, 255, 0.1)", fontSize: "15px",
-                    outline: "none", transition: "all 0.2s", boxSizing: "border-box"
+                    background: isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(15, 23, 42, 0.03)", 
+                    color: isDarkMode ? "#fff" : "#0f172a",
+                    border: isDarkMode ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(15, 23, 42, 0.1)", 
+                    fontSize: "15px", outline: "none", transition: "all 0.2s", boxSizing: "border-box"
                 }}
               />
             </div>
@@ -140,7 +172,7 @@ const Signup = () => {
             {/* Password Field with Show/Hide */}
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <label style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", opacity: 0.8 }}>Password</label>
+                <label style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", opacity: isDarkMode ? 0.8 : 0.65, color: isDarkMode ? "inherit" : "#0f172a" }}>Password</label>
                 <span 
                   onClick={() => setShowPassword(!showPassword)}
                   style={{ fontSize: "12px", color: "#6366f1", cursor: "pointer", fontWeight: "600", userSelect: "none" }}
@@ -157,9 +189,10 @@ const Signup = () => {
                 required
                 style={{
                     width: "100%", padding: "14px 16px", borderRadius: "10px",
-                    background: "rgba(255, 255, 255, 0.03)", color: "inherit",
-                    border: "1px solid rgba(255, 255, 255, 0.1)", fontSize: "15px",
-                    outline: "none", transition: "all 0.2s", boxSizing: "border-box"
+                    background: isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(15, 23, 42, 0.03)", 
+                    color: isDarkMode ? "#fff" : "#0f172a",
+                    border: isDarkMode ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(15, 23, 42, 0.1)", 
+                    fontSize: "15px", outline: "none", transition: "all 0.2s", boxSizing: "border-box"
                 }}
               />
             </div>
@@ -181,7 +214,7 @@ const Signup = () => {
           </form>
 
           {/* Footer Navigation */}
-          <div style={{ marginTop: "32px", fontSize: "14px", opacity: 0.7, fontWeight: "500" }}>
+          <div style={{ marginTop: "32px", fontSize: "14px", opacity: 0.7, fontWeight: "500", color: isDarkMode ? "inherit" : "#475569" }}>
             Already have an account?{" "}
             <span 
               onClick={() => navigate("/login")} 
@@ -198,7 +231,7 @@ const Signup = () => {
       <style>{`
           .custom-auth-input:focus { 
               border-color: #6366f1 !important; 
-              background: rgba(99, 102, 241, 0.02) !important;
+              background: ${isDarkMode ? "rgba(99, 102, 241, 0.02)" : "rgba(99, 102, 241, 0.01)"} !important;
           }
           
           .btn-auth-submit:hover { 
