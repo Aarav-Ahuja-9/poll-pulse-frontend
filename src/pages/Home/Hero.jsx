@@ -60,7 +60,7 @@ const Hero = () => {
                 {/* Action Buttons */}
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                     <button 
-                        onClick={() => navigate('/login')} 
+                        onClick={() => navigate('/signup')} 
                         className="btn-primary-hero"
                         style={{ 
                             background: '#4f46e5', color: '#fff', border: 'none', 

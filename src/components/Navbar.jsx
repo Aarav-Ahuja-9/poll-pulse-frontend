@@ -112,7 +112,7 @@ const Navbar = () => {
 
                     {/* 🛠️ FLAT SOLID BUTTON */}
                     <button 
-                        onClick={() => navigate('/register')} 
+                        onClick={() => navigate('/login')} 
                         style={{ 
                             background: isDarkMode ? '#f8fafc' : '#0f172a', 
                             color: isDarkMode ? '#0f172a' : '#f8fafc', 
