@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { apiUrl } from "../config/api"; 
+import { apiUrl, authRequestConfig, getAuthErrorMessage } from "../config/api"; 
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -45,11 +45,15 @@ const Signup = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post(apiUrl("/api/users/signup"), {
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        password,
-      });
+      const res = await axios.post(
+        apiUrl("/api/users/signup"),
+        {
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          password,
+        },
+        authRequestConfig,
+      );
 
       if (!res.data?.token) {
         alert("Account created but sign-in failed. Please log in manually.");
@@ -67,12 +71,7 @@ const Signup = () => {
 
       navigate("/dashboard");
     } catch (err) {
-      const message =
-        err.response?.data?.message ||
-        (err.message?.includes("VITE_BACKEND_URL")
-          ? err.message
-          : "Could not reach the server. Check your connection and .env file.");
-      alert(message);
+      alert(getAuthErrorMessage(err));
     } finally {
       setLoading(false);
     }

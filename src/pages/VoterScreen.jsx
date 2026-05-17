@@ -3,8 +3,6 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import { io } from "socket.io-client";
 
-const socket = io(import.meta.env.VITE_BACKEND_URL);
-
 const VoterScreen = () => {
   const { slug } = useParams();
   const [poll, setPoll] = useState(null);
@@ -27,6 +25,12 @@ const VoterScreen = () => {
   // ⏱️ TOTAL SECONDS REMAINING STATE
   const [timeLeft, setTimeLeft] = useState(null);
   const timerRef = useRef(null);
+  const socketRef = useRef(null); 
+
+  // 🚀 HARDCORE ENVIRONMENT DETECTOR (Localhost loop & Deployed setups balance)
+  const BACKEND_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:5001"
+    : (import.meta.env.VITE_BACKEND_URL || "https://snappolls-api.onrender.com");
 
   // 🌗 PLATFORM THEME SWITCH SYNC
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -35,13 +39,22 @@ const VoterScreen = () => {
   });
 
   useEffect(() => {
+    try {
+      socketRef.current = io(BACKEND_URL);
+    } catch (socketErr) {
+      console.error("Socket Link Establishment Error:", socketErr);
+    }
+
     const fetchPollData = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/polls/slug/${slug}`);
+        const res = await axios.get(`${BACKEND_URL}/api/polls/slug/${slug}`);
         if (res.data.success) {
           setPoll(res.data.poll);
           setIsLocked(res.data.poll.isPasswordProtected || false);
-          socket.emit("join-poll", res.data.poll._id);
+          
+          if (socketRef.current) {
+            socketRef.current.emit("join-poll", res.data.poll._id);
+          }
           await fetchResults(res.data.poll._id);
         }
       } catch (err) {
@@ -58,14 +71,21 @@ const VoterScreen = () => {
       setIsDarkMode(savedTheme === 'dark');
     };
     window.addEventListener('themeChange', handleGlobalThemeShift);
-    return () => window.removeEventListener('themeChange', handleGlobalThemeShift);
+    
+    return () => {
+      window.removeEventListener('themeChange', handleGlobalThemeShift);
+      if (socketRef.current) socketRef.current.disconnect();
+    };
   }, [slug]);
+
+  // Dynamic Questions Array Fallback Matrix 🌟
+  const actualQuestions = poll?.questions || poll?.question || [];
 
   // ⏱️ TIMER EFFECT INTERVALLER (MINUTES TO SECONDS MATRIX)
   useEffect(() => {
-    if (!poll || hasVoted || isLocked) return;
+    if (actualQuestions.length === 0 || hasVoted || isLocked) return;
 
-    const currentQuestion = poll.questions[currentQuestionIndex];
+    const currentQuestion = actualQuestions[currentQuestionIndex];
     
     if (timerRef.current) clearInterval(timerRef.current);
 
@@ -83,7 +103,7 @@ const VoterScreen = () => {
         });
       }, 1000);
     } else {
-      setTimeLeft(null); // Infinity Mode Trigger
+      setTimeLeft(null); 
     }
 
     return () => {
@@ -92,18 +112,20 @@ const VoterScreen = () => {
   }, [currentQuestionIndex, poll, hasVoted, isLocked]);
 
   useEffect(() => {
-    if (poll?._id) {
-      socket.on("update-analytics", () => {
+    if (poll?._id && socketRef.current) {
+      socketRef.current.on("update-analytics", () => {
         console.log("⚡ Realtime Sync: Another node logged a response vector!");
         fetchResults(poll._id);
       });
     }
-    return () => socket.off("update-analytics");
+    return () => {
+      if (socketRef.current) socketRef.current.off("update-analytics");
+    };
   }, [poll]);
 
   const fetchResults = async (pollId) => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/polls/public-analytics/${pollId}`);
+      const res = await axios.get(`${BACKEND_URL}/api/polls/public-analytics/${pollId}`);
       setAnalytics(res.data);
     } catch (err) {
       console.error("Error fetching live metrics:", err);
@@ -112,9 +134,9 @@ const VoterScreen = () => {
 
   const handleTimerExpiry = () => {
     console.log("⏳ Time expired for question index:", currentQuestionIndex);
-    const isLast = currentQuestionIndex === poll.questions.length - 1;
+    const isLast = currentQuestionIndex === actualQuestions.length - 1;
     if (isLast) {
-      handleSubmitVote(true); // Force auto-submit stream sync
+      handleSubmitVote(true); 
     } else {
       setCurrentQuestionIndex((prev) => prev + 1);
     }
@@ -123,7 +145,7 @@ const VoterScreen = () => {
   const handleUnlockPoll = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/polls/verify-access/${slug}`, {
+      const res = await axios.post(`${BACKEND_URL}/api/polls/verify-access/${slug}`, {
         password: accessPassword,
       });
       if (res.data.success) {
@@ -135,7 +157,6 @@ const VoterScreen = () => {
   };
 
   const handleOptionSelect = (qIndex, optIndex) => {
-    // 🔒 Block inputs safely if time has ran out to 0
     if (hasVoted || timeLeft === 0) return;
     setSelectedOptions({ ...selectedOptions, [qIndex]: optIndex });
   };
@@ -146,7 +167,7 @@ const VoterScreen = () => {
       return;
     }
 
-    const formattedAnswers = poll.questions.map((q, idx) => ({
+    const formattedAnswers = actualQuestions.map((q, idx) => ({
       questionIndex: idx,
       selectedOption: q.questionType === "CHOICE" ? (selectedOptions[idx] !== undefined ? parseInt(selectedOptions[idx]) : null) : null,
       textResponse: q.questionType === "TEXT" ? textAnswers[idx] || "" : null,
@@ -154,8 +175,8 @@ const VoterScreen = () => {
     }));
 
     if (!isForced) {
-      for (let i = 0; i < poll.questions.length; i++) {
-        const q = poll.questions[i];
+      for (let i = 0; i < actualQuestions.length; i++) {
+        const q = actualQuestions[i];
         if (q.isMandatory) {
           if (q.questionType === "CHOICE" && selectedOptions[i] === undefined) return alert(`Question ${i + 1} select karna zaroori hai!`);
           if (q.questionType === "TEXT" && (!textAnswers[i] || !textAnswers[i].trim())) return alert(`Question ${i + 1} ka answer type karna zaroori hai!`);
@@ -166,7 +187,7 @@ const VoterScreen = () => {
 
     setSubmitting(true);
     try {
-      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/polls/${poll._id}/respond`, {
+      await axios.post(`${BACKEND_URL}/api/polls/${poll._id}/respond`, {
         answers: formattedAnswers,
         userId: poll.collectVoterDetails && voterName.trim() ? voterName : "Anonymous Voter",
       });
@@ -181,7 +202,7 @@ const VoterScreen = () => {
   };
 
   const handleNext = () => {
-    const q = poll.questions[currentQuestionIndex];
+    const q = actualQuestions[currentQuestionIndex];
     if (q.isMandatory) {
       if (q.questionType === "CHOICE" && selectedOptions[currentQuestionIndex] === undefined) return alert("Pehle is option node ko select karo! 🤔");
       if (q.questionType === "TEXT" && (!textAnswers[currentQuestionIndex] || !textAnswers[currentQuestionIndex].trim())) return alert("Pehle answer field type karo! ✍️");
@@ -206,7 +227,7 @@ const VoterScreen = () => {
   const colorSubText = isDarkMode ? "#94a3b8" : "#475569";
   const backgroundWrapper = isDarkMode ? "#02040a" : "#f8fafc";
   
-  const backgroundGlassCard = isDarkMode ? "rgba(10, 11, 18, 0.72)" : "rgba(255, 255, 255, 0.75)";
+  const backgroundGlassCard = isDarkMode ? "rgba(10, 11, 18, 0.72)" : "rgba(255, 255, 255, 0.88)";
   const backgroundInnerNodes = isDarkMode ? "rgba(255, 255, 255, 0.02)" : "rgba(15, 23, 42, 0.03)";
   const backgroundInputFields = isDarkMode ? "rgba(0, 0, 0, 0.25)" : "rgba(255, 255, 255, 0.7)";
   const borderCardTheme = isDarkMode ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(15, 23, 42, 0.09)";
@@ -222,7 +243,7 @@ const VoterScreen = () => {
   if (isLocked) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: backgroundWrapper, padding: "20px" }}>
-        <div style={{ background: backgroundGlassCard, backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", border: borderCardTheme, padding: "40px", borderRadius: "24px", maxWidth: "420px", width: "100%", textAlign: "center" }}>
+        <div style={{ background: backgroundGlassCard, backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", border: borderCardTheme, padding: "40px", borderRadius: "24px", maxWidth: "420px", width: "100%", textAlign: "center", boxShadow: isDarkMode ? "0 25px 50px -12px rgba(0, 0, 0, 0.4)" : "0 25px 50px -12px rgba(0, 0, 0, 0.03)" }}>
           <div style={{ fontSize: "32px", marginBottom: "16px" }}>🔒</div>
           <h2 style={{ fontSize: "22px", fontWeight: "800", marginBottom: "8px", color: colorMainText }}>Encrypted Session Node</h2>
           <p style={{ fontSize: "14px", color: colorSubText, marginBottom: "24px" }}>Enter the correct layout security cipher token access key.</p>
@@ -244,11 +265,22 @@ const VoterScreen = () => {
     );
   }
 
-  const currentQuestion = poll.questions[currentQuestionIndex];
-  const isLastQuestion = currentQuestionIndex === poll.questions.length - 1;
-  const isTimeCritical = timeLeft !== null && timeLeft <= 15;
+  // 🔒 ERROR BOUNDARY CONTROL: Fallback window logs debug maps automatically
+  if (actualQuestions.length === 0) {
+    console.log("🚨 Debug Snapshot - Current Poll Object from Backend:", poll);
+    return (
+      <div style={{ background: backgroundWrapper, height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#ef4444", gap: "12px", padding: "24px", textAlign: "center" }}>
+        <h3 style={{ fontWeight: "700", margin: 0 }}>No questions mapped inside this configuration node! 📋</h3>
+        <p style={{ color: colorSubText, fontSize: "13px", fontFamily: "monospace", maxWidth: "400px", margin: 0 }}>
+          Bhai, frontend stable hai par backend data check karo. Open Browser Console (F12) to audit response parameters tree.
+        </p>
+      </div>
+    );
+  }
 
-  // 🔒 CHECK IF TIME HAS FULLY RUN OUT TO ZERO
+  const currentQuestion = actualQuestions[currentQuestionIndex];
+  const isLastQuestion = currentQuestionIndex === actualQuestions.length - 1;
+  const isTimeCritical = timeLeft !== null && timeLeft <= 15;
   const isTimeOver = timeLeft === 0;
 
   return (
@@ -272,10 +304,10 @@ const VoterScreen = () => {
             <div style={{ marginTop: "32px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", color: colorSubText, fontWeight: "700" }}>
                 <span>Ballot Frame Mapping</span>
-                <span>{currentQuestionIndex + 1} / {poll.questions.length}</span>
+                <span>{currentQuestionIndex + 1} / {actualQuestions.length}</span>
               </div>
               <div style={{ width: "100%", height: "4px", background: isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(15, 23, 42, 0.06)", borderRadius: "100px", marginTop: "8px", overflow: "hidden" }}>
-                <div style={{ width: `${((currentQuestionIndex + 1) / poll.questions.length) * 100}%`, height: "100%", background: "linear-gradient(90deg, #6366f1, #a855f7)", transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)" }} />
+                <div style={{ width: `${((currentQuestionIndex + 1) / actualQuestions.length) * 100}%`, height: "100%", background: "linear-gradient(90deg, #6366f1, #a855f7)", transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)" }} />
               </div>
             </div>
           )}
@@ -284,7 +316,6 @@ const VoterScreen = () => {
         {!hasVoted ? (
           <div style={{ background: backgroundGlassCard, backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", borderRadius: "24px", padding: "32px", border: borderCardTheme, boxShadow: isDarkMode ? "0 25px 50px -12px rgba(0, 0, 0, 0.5)" : "0 25px 50px -12px rgba(0, 0, 0, 0.02)", animation: "fadeIn 0.4s ease" }}>
             
-            {/* Live Count Display */}
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
               <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: isTimeOver || isTimeCritical ? "rgba(239, 68, 68, 0.12)" : "rgba(99, 102, 241, 0.12)", border: isTimeOver || isTimeCritical ? "1px solid rgba(239, 68, 68, 0.2)" : "1px solid rgba(99, 102, 241, 0.2)", padding: "6px 14px", borderRadius: "100px", fontSize: "13px", fontWeight: "700", fontFamily: "monospace", color: isTimeOver || isTimeCritical ? "#ef4444" : "#6366f1", transition: "all 0.3s ease" }}>
                 <span>⏱️ {isTimeOver ? "Time's Up:" : "Time Remaining:"}</span>
@@ -324,7 +355,7 @@ const VoterScreen = () => {
             {/* CHOICE COMPONENT */}
             {currentQuestion.questionType === "CHOICE" && (
               <div style={{ display: "flex", flexDirection: "column", gap: "12px", opacity: isTimeOver ? 0.5 : 1 }}>
-                {currentQuestion.options.map((opt, optIndex) => {
+                {currentQuestion.options && currentQuestion.options.map((opt, optIndex) => {
                   const result = analytics.find((a) => a._id.qIdx === currentQuestionIndex && String(a._id.optIdx) === String(optIndex));
                   const count = result ? result.count : 0;
                   const qTotal = analytics.filter((a) => a._id.qIdx === currentQuestionIndex).reduce((sum, item) => sum + item.count, 0);
@@ -373,7 +404,7 @@ const VoterScreen = () => {
                   <span
                     key={star}
                     onClick={() => handleOptionSelect(currentQuestionIndex, star)}
-                    style={{ fontSize: "32px", cursor: isTimeOver ? "not-allowed" : "pointer", color: selectedOptions[currentQuestionIndex] >= star ? "#fbbf24" : (isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)") }}
+                    style={{ fontSize: "32px", cursor: isTimeOver ? "not-allowed" : "pointer", color: selectedOptions[currentQuestionIndex] >= star ? "#fbbf24" : (isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(15, 23, 42, 0.08)"), transition: "all 0.1s" }}
                   >
                     ★
                   </span>
@@ -381,12 +412,23 @@ const VoterScreen = () => {
               </div>
             )}
 
-            {/* Navigation and Finalizing Controllers */}
+            {/* Controls panel */}
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: "32px", gap: "12px" }}>
               <button
                 onClick={handlePrev}
                 disabled={currentQuestionIndex === 0 || isTimeOver}
-                style={{ background: "transparent", color: colorSubText, border: borderCardTheme, padding: "12px 28px", borderRadius: "100px", fontWeight: "700", fontSize: "14px", cursor: currentQuestionIndex === 0 || isTimeOver ? "not-allowed" : "pointer", opacity: currentQuestionIndex === 0 || isTimeOver ? 0.3 : 1 }}
+                style={{ 
+                  background: "transparent", 
+                  color: colorSubText, 
+                  border: borderCardTheme, 
+                  padding: "12px 28px", 
+                  borderRadius: "100px", 
+                  fontWeight: "700", 
+                  fontSize: "14px", 
+                  cursor: currentQuestionIndex === 0 || isTimeOver ? "not-allowed" : "pointer", 
+                  opacity: currentQuestionIndex === 0 || isTimeOver ? 0.3 : 1,
+                  transition: "all 0.2s"
+                }}
               >
                 Back
               </button>
@@ -395,7 +437,18 @@ const VoterScreen = () => {
                 <button
                   onClick={handleNext}
                   disabled={isTimeOver}
-                  style={{ background: colorMainText, color: backgroundWrapper, border: "none", padding: "12px 32px", borderRadius: "100px", fontWeight: "700", fontSize: "14px", cursor: isTimeOver ? "not-allowed" : "pointer", opacity: isTimeOver ? 0.5 : 1 }}
+                  style={{ 
+                    background: colorMainText, 
+                    color: backgroundWrapper, 
+                    border: "none", 
+                    padding: "12px 32px", 
+                    borderRadius: "100px", 
+                    fontWeight: "700", 
+                    fontSize: "14px", 
+                    cursor: isTimeOver ? "not-allowed" : "pointer", 
+                    opacity: isTimeOver ? 0.4 : 1,
+                    transition: "all 0.2s"
+                  }}
                 >
                   Next Question →
                 </button>
@@ -403,9 +456,22 @@ const VoterScreen = () => {
                 <button
                   onClick={() => handleSubmitVote(false)}
                   disabled={submitting || isTimeOver}
-                  style={{ background: isTimeOver ? "rgba(239, 68, 68, 0.2)" : "linear-gradient(135deg, #6366f1, #a855f7)", color: isTimeOver ? "#ef4444" : "#fff", border: isTimeOver ? "1px solid #ef4444" : "none", padding: "12px 32px", borderRadius: "100px", fontWeight: "700", fontSize: "14px", cursor: submitting || isTimeOver ? "not-allowed" : "pointer", boxShadow: isTimeOver ? "none" : "0 4px 15px rgba(99, 102, 241, 0.25)" }}
+                  style={{ 
+                    background: "linear-gradient(135deg, #6366f1, #a855f7)", 
+                    color: "#fff", 
+                    border: "none", 
+                    padding: "12px 32px", 
+                    borderRadius: "100px", 
+                    fontWeight: "700", 
+                    fontSize: "14px", 
+                    cursor: submitting || isTimeOver ? "not-allowed" : "pointer", 
+                    opacity: submitting || isTimeOver ? 0.4 : 1,
+                    pointerEvents: submitting || isTimeOver ? "none" : "auto",
+                    boxShadow: isTimeOver ? "none" : "0 4px 15px rgba(99, 102, 241, 0.25)",
+                    transition: "all 0.2s"
+                  }}
                 >
-                  {submitting ? "Processing..." : (isTimeOver ? "Locked 🔒" : "Lock In My Vote ⚡")}
+                  {submitting ? "Processing..." : "Lock In My Vote ⚡"}
                 </button>
               )}
             </div>
@@ -414,7 +480,7 @@ const VoterScreen = () => {
         ) : (
           /* Live Post-Vote Metrics Views */
           <div style={{ display: "flex", flexDirection: "column", gap: "16px", animation: "fadeIn 0.5s ease" }}>
-            {poll.questions.map((q, qIndex) => {
+            {actualQuestions.map((q, qIndex) => {
               const qTotal = analytics.filter((a) => a._id.qIdx === qIndex).reduce((sum, item) => sum + item.count, 0);
               return (
                 <div key={qIndex} style={{ background: backgroundGlassCard, backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", borderRadius: "20px", padding: "24px 28px", border: borderCardTheme }}>
@@ -429,7 +495,7 @@ const VoterScreen = () => {
 
                   {q.questionType === "CHOICE" ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                      {q.options.map((opt, optIndex) => {
+                      {q.options && q.options.map((opt, optIndex) => {
                         const result = analytics.find((a) => a._id.qIdx === qIndex && String(a._id.optIdx) === String(optIndex));
                         const count = result ? result.count : 0;
                         const pct = qTotal === 0 ? 0 : Math.round((count / qTotal) * 100);
